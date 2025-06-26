@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="bn" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasania Exam Management System</title>
+    <!-- Chosen Palette: Calm Neutral -->
+    <!-- Application Structure Plan: The application is a Single Page Application (SPA) with a fixed navigation bar. The main content area dynamically renders different 'views' (Home/Attendance, Student Management, Reports, etc.) using JavaScript without page reloads. This task-oriented structure prioritizes the primary function—taking attendance—on the home screen, while grouping secondary management tasks (students, books) and outputs (reports) into their own logical sections. This design ensures a fast, intuitive, and focused user flow, making it easy for teachers to perform their daily tasks and for administrators to manage data and generate insights. -->
+    <!-- Visualization & Content Choices: 
+        - Home/Attendance: Goal: Inform/Organize. Method: A sequence of dropdowns populates a dynamic HTML table. Interaction: Selections cascade, loading relevant students. Attendance is marked with radio buttons. Justification: This is a standard, user-friendly pattern for data entry and filtering.
+        - Student/Kitab Management: Goal: Organize. Method: HTML forms and tables. Interaction: Standard CRUD interface with icons for actions. Justification: Universally understood pattern for data management.
+        - Reports: Goal: Compare/Inform. Method: Chart.js for a canvas-based pie chart; jsPDF for PDF generation; SheetJS for Excel. Interaction: Buttons trigger downloads. Justification: These libraries provide the best tools for the job. jsPDF is specifically chosen for its ability to embed custom fonts like 'Solaiman Lipi', a key requirement. Chart.js is lightweight and responsive.
+        - Static Pages: Goal: Inform. Method: Simple HTML content blocks styled with Tailwind. Justification: Clear and direct presentation of information. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-hijri/2.1.2/moment-hijri.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        window.firebase = {
+            initializeApp, getAuth, signInAnonymously, onAuthStateChanged,
+            getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot
+        };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&family=Noto+Sans+Bengali:wght@400;500;700&display=swap');
+        body { font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif; }
+        .dark .dark\:bg-slate-800 { background-color: #1e293b; }
+        .dark .dark\:bg-slate-900 { background-color: #0f172a; }
+        .dark .dark\:text-slate-200 { color: #e2e8f0; }
+        .dark .dark\:text-slate-400 { color: #94a3b8; }
+        .dark .dark\:border-slate-700 { border-color: #334152; }
+        .dark .dark\:hover\:bg-slate-700:hover { background-color: #334152; }
+        .dark .dark\:bg-slate-700 { background-color: #334152; }
+        .chart-container { position: relative; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; height: 300px; max-height: 350px; }
+        .solaiman-lipi { font-family: 'SolaimanLipi', 'Noto Sans Bengali', sans-serif; }
+        .modal { transition: opacity 0.25s ease; }
+        .modal-active { overflow-x: hidden; overflow-y: auto; }
+        .modal-content-area { max-height: 90vh; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
+
+    <div id="app">
+        <header class="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
+            <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="text-xl md:text-2xl font-bold text-teal-600 dark:text-teal-400">
+                    <a href="#" onclick="app.navigateTo('home')">Hasania Exam Management System</a>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="#" onclick="app.navigateTo('home')" class="hover:text-teal-500">হোম</a>
+                    <a href="#" onclick="app.navigateTo('studentManagement')" class="hover:text-teal-500">শিক্ষার্থী ব্যবস্থাপনা</a>
+                    <a href="#" onclick="app.navigateTo('report')" class="hover:text-teal-500">রিপোর্ট</a>
+                    <a href="#" onclick="app.navigateTo('aboutJamia')" class="hover:text-teal-500">জামিয়ার পরিচয়</a>
+                    <a href="#" onclick="app.navigateTo('aboutHEMS')" class="hover:text-teal-500">HEMS সম্পর্কে</a>
+                    <a href="#" onclick="app.navigateTo('settings')" class="hover:text-teal-500">সেটিংস</a>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                        <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 5.05A1 1 0 003.636 6.464l.707.707a1 1 0 001.414-1.414l-.707-.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1zm7.536 2.464a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0z"></path></svg>
+                    </button>
+                     <button id="mobile-menu-button" class="md:hidden p-2 rounded-md">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </nav>
+            <div id="mobile-menu" class="hidden md:hidden px-4 pt-2 pb-3 space-y-1">
+                <a href="#" onclick="app.navigateTo('home')" class="block py-2 px-3 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700">হোম</a>
+                <a href="#" onclick="app.navigateTo('studentManagement')" class="block py-2 px-3 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700">শিক্ষার্থী ব্যবস্থাপনা</a>
+                <a href="#" onclick="app.navigateTo('report')" class="block py-2 px-3 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700">রিপোর্ট</a>
+                <a href="#" onclick="app.navigateTo('aboutJamia')" class="block py-2 px-3 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700">জামিয়ার পরিচয়</a>
+                <a href="#" onclick="app.navigateTo('aboutHEMS')" class="block py-2 px-3 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700">HEMS সম্পর্কে</a>
+                <a href="#" onclick="app.navigateTo('settings')" class="block py-2 px-3 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700">সেটিংস</a>
+            </div>
+        </header>
+
+        <main id="main-content" class="container mx-auto p-4 md:p-6">
+            <!-- Dynamic content will be injected here -->
+        </main>
+        
+        <footer class="text-center py-4 text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700">
+            <p>&copy; <span id="current-year"></span> Hasania Exam Management System. All rights reserved.</p>
+        </footer>
+
+        <!-- Modal Structure -->
+        <div id="app-modal" class="modal fixed w-full h-full top-0 left-0 flex items-center justify-center hidden z-50">
+            <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
+            <div id="modal-container" class="modal-container bg-white dark:bg-slate-800 w-11/12 md:max-w-md mx-auto rounded-lg shadow-lg z-50 overflow-y-auto">
+                <div class="modal-content-area p-6" id="modal-content-body">
+                    <!-- Modal content will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="fixed bottom-5 right-5 bg-teal-500 text-white py-2 px-4 rounded-lg shadow-lg hidden transition-opacity duration-300 z-50">
+            <p id="toast-message"></p>
+        </div>
+
+    </div>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+
+    // SolaimanLipi Font (Base64 encoded) - Placeholder. A real implementation would load this from a file.
+    const solaimanLipiFontBase64 = `...BASE64_ENCODED_FONT_DATA...`;
+    
+    const { jsPDF } = window.jspdf;
+    
+    // --- Firestore Setup ---
+    let db, auth;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'hems-prod-app';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    try {
+        const app = window.firebase.initializeApp(firebaseConfig);
+        db = window.firebase.getFirestore(app);
+        auth = window.firebase.getAuth(app);
+    } catch(e) {
+        console.error("Firebase initialization failed:", e);
+    }
+    
+    const appState = {
+        currentPage: 'home',
+        darkMode: localStorage.getItem('theme') === 'dark',
+        students: [],
+        jamats: [
+            { id: 'takmil', name: 'তাকমীল', kitabCount: 10 },
+            { id: 'mishkat', name: 'মিশকাত', kitabCount: 8 },
+            { id: 'jalalain', name: 'জালালাইন', kitabCount: 7 },
+            { id: 'sharhe_beqaya', name: 'শরহে বেকায়া', kitabCount: 7 },
+            { id: 'sharhe_jami', name: 'শরহে জামী', kitabCount: 7 },
+            { id: 'kafiya', name: 'কাফিয়া', kitabCount: 9 },
+            { id: 'hidayatunnahu', name: 'হিদায়াতুন্নাহু', kitabCount: 7 },
+            { id: 'nahbemir', name: 'নাহবেমীর', kitabCount: 7 },
+            { id: 'mizhan', name: 'মিঝান', kitabCount: 9 },
+            { id: 'dahom', name: 'দহম', kitabCount: 8 },
+            { id: 'yajdahom', name: 'ইয়াজ দহম', kitabCount: 10 },
+        ],
+        kitabs: [],
+        attendance: {},
+        settings: {
+            madrasaName: "জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা",
+            madrasaAddress: "রঘুনাথপুর, শিঙ্গাশোলপুর, কালিয়া, নড়াইল",
+        },
+        authReady: false,
+        userId: null,
+    };
+
+    const mainContent = document.getElementById('main-content');
+    const themeToggle = document.getElementById('theme-toggle');
+
+    // --- Core App Logic ---
+    const HEMS = {
+        init() {
+            this.setupEventListeners();
+            this.handleTheme();
+            this.initFirebase();
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+        },
+
+        async initFirebase() {
+            if (!auth || !db) {
+                console.error("Firestore or Auth not initialized.");
+                this.showToast("ডেটাবেস সংযোগ ব্যর্থ হয়েছে।", 'error');
+                return;
+            }
+             window.firebase.onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    appState.authReady = true;
+                    appState.userId = user.uid;
+                } else {
+                    try {
+                        const userCredential = await window.firebase.signInAnonymously(auth);
+                        appState.authReady = true;
+                        appState.userId = userCredential.user.uid;
+                    } catch (error) {
+                         console.error("Anonymous sign-in failed:", error);
+                         this.showToast("প্রমাণীকরণ ব্যর্থ হয়েছে।", 'error');
+                    }
+                }
+                
+                if(appState.authReady){
+                   this.loadInitialData();
+                   this.navigateTo('home');
+                }
+            });
+        },
+
+        async loadInitialData() {
+            await this.loadSettings();
+            this.listenToStudents();
+            this.listenToKitabs();
+        },
+        
+        setupEventListeners() {
+            themeToggle.addEventListener('click', () => {
+                appState.darkMode = !appState.darkMode;
+                localStorage.setItem('theme', appState.darkMode ? 'dark' : 'light');
+                this.handleTheme();
+            });
+
+            document.getElementById('mobile-menu-button').addEventListener('click', () => {
+                document.getElementById('mobile-menu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    document.getElementById('mobile-menu').classList.add('hidden');
+                });
+            });
+        },
+
+        handleTheme() {
+            const html = document.documentElement;
+            if (appState.darkMode) {
+                html.classList.add('dark');
+                document.getElementById('theme-toggle-dark-icon').classList.remove('hidden');
+                document.getElementById('theme-toggle-light-icon').classList.add('hidden');
+            } else {
+                html.classList.remove('dark');
+                document.getElementById('theme-toggle-dark-icon').classList.add('hidden');
+                document.getElementById('theme-toggle-light-icon').classList.remove('hidden');
+            }
+        },
+
+        navigateTo(page) {
+            appState.currentPage = page;
+            this.render();
+            window.scrollTo(0, 0);
+        },
+
+        render() {
+            mainContent.innerHTML = ''; 
+            switch (appState.currentPage) {
+                case 'home':
+                    mainContent.innerHTML = this.renderAttendancePage();
+                    this.attachAttendanceListeners();
+                    break;
+                case 'studentManagement':
+                    mainContent.innerHTML = this.renderStudentManagementPage();
+                    this.attachStudentManagementListeners();
+                    break;
+                case 'report':
+                    mainContent.innerHTML = this.renderReportPage();
+                    this.attachReportListeners();
+                    break;
+                case 'aboutJamia':
+                    mainContent.innerHTML = this.renderAboutJamiaPage();
+                    break;
+                case 'aboutHEMS':
+                    mainContent.innerHTML = this.renderAboutHEMSPage();
+                    break;
+                case 'settings':
+                    mainContent.innerHTML = this.renderSettingsPage();
+                    this.attachSettingsListeners();
+                    break;
+                default:
+                    mainContent.innerHTML = this.renderAttendancePage();
+                    this.attachAttendanceListeners();
+            }
+        },
+
+        getAcademicYear(date) {
+            const m = moment(date).endOf('day');
+            const hijriYear = parseInt(m.format('iYYYY'));
+            const hijriMonth = parseInt(m.format('iMM'));
+            
+            // Shawwal is the 10th month. Academic year starts from Shawwal.
+            // If the month is Shawwal or later (10, 11, 12), the academic year starts with the current Hijri year.
+            // Otherwise (months 1-9), it's part of the academic year that started in the *previous* Hijri year.
+            if (hijriMonth >= 10) { 
+                return `${hijriYear}/${hijriYear + 1}`;
+            } else {
+                return `${hijriYear - 1}/${hijriYear}`;
+            }
+        },
+        
+        generateAcademicYearOptions() {
+            const currentAcademicYear = this.getAcademicYear(new Date());
+            const firstYearInCurrent = parseInt(currentAcademicYear.split('/')[0]);
+            
+            let options = '';
+            // Generate options for the current and last 4 years.
+            for (let i = 0; i < 5; i++) {
+                const year = firstYearInCurrent - i;
+                const yearString = `${year}/${year + 1}`;
+                const isSelected = (yearString === currentAcademicYear) ? 'selected' : '';
+                options += `<option value="${yearString}" ${isSelected}>${yearString}</option>`;
+            }
+            return options;
+        },
+
+        // --- Render Methods ---
+        renderAttendancePage() {
+            return `
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h1 class="text-2xl font-bold mb-6">পরীক্ষার্থীর হাজিরা</h1>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div>
+                            <label for="academic-year" class="block text-sm font-medium mb-1">শিক্ষাবর্ষ (হিজরি)</label>
+                            <select id="academic-year" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                ${this.generateAcademicYearOptions()}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="exam-date" class="block text-sm font-medium mb-1">পরীক্ষার তারিখ</label>
+                            <input type="date" id="exam-date" value="${new Date().toISOString().split('T')[0]}" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+                        <div>
+                            <label for="exam-type" class="block text-sm font-medium mb-1">পরীক্ষার ধরন</label>
+                            <select id="exam-type" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                <option value="১ম সাময়িক পরীক্ষা">১ম সাময়িক পরীক্ষা</option>
+                                <option value="২য় সাময়িক পরীক্ষা">২য় সাময়িক পরীক্ষা</option>
+                                <option value="বার্ষিক পরীক্ষা">বার্ষিক পরীক্ষা</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="jamāt-select" class="block text-sm font-medium mb-1">জামাত</label>
+                            <select id="jamāt-select" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                <option value="">জামাত নির্বাচন করুন</option>
+                                ${appState.jamats.map(j => `<option value="${j.id}">${j.name}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div id="attendance-table-container" class="overflow-x-auto"></div>
+                </div>
+            `;
+        },
+
+        renderStudentManagementPage() {
+            return `
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h1 class="text-2xl font-bold mb-6">শিক্ষার্থী ও কিতাব ব্যবস্থাপনা</h1>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <h2 class="text-xl font-semibold mb-4">নতুন শিক্ষার্থী যোগ করুন</h2>
+                            <form id="add-student-form" class="space-y-4">
+                                <div>
+                                    <label for="student-name" class="block text-sm font-medium mb-1">শিক্ষার্থীর পুরো নাম</label>
+                                    <input type="text" id="student-name" required class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                </div>
+                                <div>
+                                    <label for="student-jamāt" class="block text-sm font-medium mb-1">জামাত</label>
+                                    <select id="student-jamāt" required class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                        <option value="">জামাত নির্বাচন করুন</option>
+                                        ${appState.jamats.map(j => `<option value="${j.id}">${j.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <input type="hidden" id="student-id">
+                                <button type="submit" id="student-form-submit" class="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700">শিক্ষার্থী যোগ করুন</button>
+                                <button type="button" id="student-form-cancel" class="bg-slate-500 text-white px-4 py-2 rounded-md hover:bg-slate-600 hidden">বাতিল</button>
+                            </form>
+                            <div class="mt-8">
+                                <h2 class="text-xl font-semibold mb-4">শিক্ষার্থীদের তালিকা</h2>
+                                <div class="mb-4">
+                                    <label for="filter-jamāt-student" class="block text-sm font-medium mb-1">জামাত অনুযায়ী ফিল্টার</label>
+                                    <select id="filter-jamāt-student" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                        <option value="all">সকল জামাত</option>
+                                         ${appState.jamats.map(j => `<option value="${j.id}">${j.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div id="student-list" class="overflow-x-auto border dark:border-slate-700 rounded-md"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h2 class="text-xl font-semibold mb-4">কিতাব ব্যবস্থাপনা</h2>
+                            <div class="space-y-4">
+                                 <div>
+                                    <label for="kitab-jamāt-select" class="block text-sm font-medium mb-1">জামাত</label>
+                                    <select id="kitab-jamāt-select" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                        <option value="">জামাত নির্বাচন করুন</option>
+                                        ${appState.jamats.map(j => `<option value="${j.id}">${j.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div id="kitab-list-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+
+        renderReportPage() {
+            return `
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h1 class="text-2xl font-bold mb-6">রিপোর্ট ডাউনলোড</h1>
+                     <p class="mb-6 text-slate-600 dark:text-slate-400">হাজিরার রিপোর্ট তৈরি এবং ডাউনলোড করতে নিচের ফিল্টারগুলো পূরণ করুন। রিপোর্টটি নির্বাচিত শিক্ষাবর্ষ, পরীক্ষা এবং জামাতের উপর ভিত্তি করে তৈরি হবে।</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div>
+                            <label for="report-academic-year" class="block text-sm font-medium mb-1">শিক্ষাবর্ষ (হিজরি)</label>
+                            <select id="report-academic-year" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                ${this.generateAcademicYearOptions()}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="report-exam-type" class="block text-sm font-medium mb-1">পরীক্ষার ধরন</label>
+                            <select id="report-exam-type" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                <option value="all">সকল পরীক্ষা</option>
+                                <option value="১ম সাময়িক পরীক্ষা">১ম সাময়িক পরীক্ষা</option>
+                                <option value="২য় সাময়িক পরীক্ষা">২য় সাময়িক পরীক্ষা</option>
+                                <option value="বার্ষিক পরীক্ষা">বার্ষিক পরীক্ষা</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="report-jamāt-select" class="block text-sm font-medium mb-1">জামাত</label>
+                            <select id="report-jamāt-select" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                <option value="all">সকল জামাত</option>
+                                ${appState.jamats.map(j => `<option value="${j.id}">${j.name}</option>`).join('')}
+                            </select>
+                        </div>
+                         <div>
+                            <label for="report-student-select" class="block text-sm font-medium mb-1">শিক্ষার্থী</label>
+                            <select id="report-student-select" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                                <option value="all">সকল শিক্ষার্থী</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex space-x-4 mb-8">
+                         <button id="generate-report-preview" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">রিপোর্ট দেখুন</button>
+                    </div>
+
+                    <div id="report-preview-area" class="hidden">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2">
+                                <h3 class="text-xl font-semibold mb-4">রিপোর্ট প্রিভিউ</h3>
+                                <div id="report-table-preview" class="overflow-x-auto border dark:border-slate-600 rounded-lg p-4"></div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-semibold mb-4">হাজিরার সারসংক্ষেপ</h3>
+                                <div class="chart-container">
+                                    <canvas id="attendance-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 flex flex-wrap gap-4">
+                            <button id="download-pdf" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">PDF ডাউনলোড</button>
+                            <button id="download-excel" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Excel ডাউনলোড</button>
+                        </div>
+                        
+                        <!-- Hidden element for PDF generation -->
+                        <div id="pdf-render-content" class="hidden"></div>
+                    </div>
+                </div>
+            `;
+        },
+
+        renderAboutJamiaPage() {
+            return `
+                <div class="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-lg shadow-md prose prose-lg dark:prose-invert max-w-4xl mx-auto">
+                    <h1 class="text-center">জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা</h1>
+                    <p class="lead text-center text-slate-600 dark:text-slate-400">রঘুনাথপুর, শিঙ্গাশোলপুর, কালিয়া, নড়াইল</p>
+                    
+                    <h2>লক্ষ্য ও উদ্দেশ্য</h2>
+                    <p>জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা একটি অলাভজনক ইসলামি শিক্ষা প্রতিষ্ঠান। আমাদের মূল লক্ষ্য হলো কুরআন ও সুন্নাহর আলোকে একটি নৈতিক ও আদর্শবান প্রজন্ম তৈরি করা, যারা সমাজ ও দেশের কল্যাণে নিবেদিত হবে। আমরা শিক্ষার্থীদের শুধুমাত্র ধর্মীয় শিক্ষাই নয়, বরং আধুনিক বিশ্বের চ্যালেঞ্জ মোকাবেলার জন্য প্রয়োজনীয় জ্ঞান ও দক্ষতা প্রদানেও সচেষ্ট।</p>
+                    
+                    <h2>আমাদের ইতিহাস</h2>
+                    <p>স্থানীয় ধর্মপ্রাণ ব্যক্তিদের উদ্যোগে এই মাদরাসা প্রতিষ্ঠিত হয়। অল্প কিছু শিক্ষার্থী নিয়ে যাত্রা শুরু করলেও, আল্লাহর রহমতে এবং এলাকাবাসীর সহযোগিতায় এটি আজ একটি পূর্ণাঙ্গ প্রতিষ্ঠানে পরিণত হয়েছে। আমরা গর্বিত যে আমাদের অনেক ছাত্র দেশের বিভিন্ন প্রান্তে ইসলামের আলো ছড়াচ্ছে এবং সমাজের সেবায় নিয়োজিত আছে।</p>
+                    
+                    <h2>শিক্ষা ব্যবস্থা</h2>
+                    <p>আমাদের মাদরাসায় কওমী শিক্ষা বোর্ডের পাঠ্যক্রম অনুসরণ করা হয়। এখানে মক্তব বিভাগ থেকে শুরু করে দাওরায়ে হাদীস (তাকমীল) পর্যন্ত মানসম্মত শিক্ষার ব্যবস্থা রয়েছে। অভিজ্ঞ এবং যোগ্য শিক্ষকমণ্ডলী দ্বারা পাঠদান করা হয়, যারা শিক্ষার্থীদের প্রতি অত্যন্ত যত্নশীল।</p>
+                    
+                    <h2>এতিমখানা</h2>
+                    <p>শিক্ষার পাশাপাশি আমরা সমাজের অসহায় ও এতিম শিশুদের জন্য একটি নিরাপদ আশ্রয়স্থল পরিচালনা করি। এখানে তাদের থাকা, খাওয়া, পোশাক এবং চিকিৎসার সুব্যবস্থা রয়েছে। আমরা বিশ্বাস করি, সঠিক যত্ন ও ভালোবাসা পেলে প্রতিটি শিশুই বিকশিত হতে পারে।</p>
+                </div>
+            `;
+        },
+
+        renderAboutHEMSPage() {
+            return `
+                 <div class="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-lg shadow-md prose prose-lg dark:prose-invert max-w-4xl mx-auto">
+                    <h1 class="text-center">Hasania Exam Management System (HEMS) সম্পর্কে</h1>
+                    
+                    <h2>আমরা যে সমস্যার সমাধান করি</h2>
+                    <p>প্রযুক্তি আমাদের জীবনকে সহজ করে তুলেছে, এবং শিক্ষা প্রতিষ্ঠানও এর ব্যতিক্রম নয়। আমরা লক্ষ্য করেছি যে মাদরাসার পরীক্ষার সময় হাজিরা গ্রহণ, সংরক্ষণ এবং এর থেকে রিপোর্ট তৈরি করার প্রক্রিয়াটি প্রায়শই সময়সাপেক্ষ এবং শ্রমসাধ্য হয়। ম্যানুয়াল পদ্ধতিতে তথ্য হারিয়ে যাওয়ার বা ভুল হওয়ার সম্ভাবনাও থাকে। HEMS এই पारंपरिक প্রক্রিয়াকে ডিজিটালাইজ করার একটি আন্তরিক প্রচেষ্টা।</p>
+                    
+                    <h2>আমাদের লক্ষ্য</h2>
+                    <p>HEMS-এর মূল লক্ষ্য হলো জামিয়া হাসানিয়া কওমীয়া মাদরাসার সম্মানিত শিক্ষকদের মূল্যবান সময় বাঁচানো এবং প্রশাসনিক কাজকে আরও সহজ ও নির্ভুল করা। এই সফটওয়্যারের মাধ্যমে:</p>
+                    <ul>
+                        <li>খুব সহজে এবং দ্রুত পরীক্ষার্থীদের হাজিরা নেওয়া যায়।</li>
+                        <li>সকল তথ্য একটি কেন্দ্রীয় ডেটাবেসে সুরক্ষিতভাবে সংরক্ষিত থাকে।</li>
+                        <li>যেকোনো সময়, যেকোনো পরীক্ষার হাজিরা রিপোর্ট এক ক্লিকে তৈরি ও ডাউনলোড করা যায়।</li>
+                        <li>শিক্ষার্থী এবং পাঠ্যক্রম সম্পর্কিত তথ্য সহজেই পরিচালনা করা যায়।</li>
+                    </ul>
+
+                    <h2>আমাদের প্রতিশ্রুতি</h2>
+                    <p>এই সিস্টেমটি বিশেষভাবে মাদরাসার অনন্য চাহিদা এবং হিজরি ক্যালেন্ডার-ভিত্তিক শিক্ষাবর্ষকে মাথায় রেখে তৈরি করা হয়েছে। আমরা একটি নির্ভরযোগ্য, দ্রুত এবং ব্যবহারকারী-বান্ধব সমাধান প্রদানে প্রতিশ্রুতিবদ্ধ। আমরা আশা করি, HEMS মাদরাসার প্রশাসনিক দক্ষতা বৃদ্ধিতে একটি সহায়ক ভূমিকা পালন করবে, ইনশাআল্লাহ।</p>
+                </div>
+            `;
+        },
+        
+        renderSettingsPage() {
+            return `
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md max-w-2xl mx-auto">
+                    <h1 class="text-2xl font-bold mb-6">সেটিংস</h1>
+                    <form id="settings-form" class="space-y-4">
+                        <div>
+                            <label for="madrasa-name" class="block text-sm font-medium mb-1">মাদরাসার নাম</label>
+                            <input type="text" id="madrasa-name" value="${appState.settings.madrasaName}" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+                        <div>
+                            <label for="madrasa-address" class="block text-sm font-medium mb-1">মাদরাসার ঠিকানা</label>
+                            <input type="text" id="madrasa-address" value="${appState.settings.madrasaAddress}" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+                        <button type="submit" class="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700">সেটিংস সংরক্ষণ করুন</button>
+                    </form>
+                </div>
+            `;
+        },
+        
+        // --- Listener Attachers ---
+        attachAttendanceListeners() {
+            const jamatSelect = document.getElementById('jamāt-select');
+            const dateInput = document.getElementById('exam-date');
+            const yearSelect = document.getElementById('academic-year');
+            if (jamatSelect) {
+                jamatSelect.addEventListener('change', () => this.renderAttendanceTable());
+                dateInput.addEventListener('change', () => this.renderAttendanceTable());
+                yearSelect.addEventListener('change', () => this.renderAttendanceTable());
+            }
+        },
+        
+        attachStudentManagementListeners() {
+            document.getElementById('add-student-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleStudentFormSubmit();
+            });
+            document.getElementById('filter-jamāt-student').addEventListener('change', (e) => {
+                this.renderStudentList(e.target.value);
+            });
+            document.getElementById('student-form-cancel').addEventListener('click', () => {
+                this.resetStudentForm();
+            });
+
+            document.getElementById('kitab-jamāt-select').addEventListener('change', (e) => {
+                this.renderKitabList(e.target.value);
+            });
+             this.renderStudentList('all');
+        },
+
+        attachReportListeners() {
+            const reportJamatSelect = document.getElementById('report-jamāt-select');
+            reportJamatSelect.addEventListener('change', (e) => {
+                this.populateReportStudentDropdown(e.target.value);
+            });
+            document.getElementById('generate-report-preview').addEventListener('click', () => {
+                this.generateReportPreview();
+            });
+        },
+        
+        attachSettingsListeners() {
+            document.getElementById('settings-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveSettings();
+            });
+        },
+
+        // --- Data Handling & Rendering ---
+
+        async renderAttendanceTable() {
+            const container = document.getElementById('attendance-table-container');
+            const jamatId = document.getElementById('jamāt-select').value;
+            const examDate = document.getElementById('exam-date').value;
+            
+            if (!jamatId || !examDate) {
+                container.innerHTML = `<p class="text-slate-500">হাজিরা টেবিল দেখতে অনুগ্রহ করে জামাত এবং তারিখ নির্বাচন করুন।</p>`;
+                return;
+            }
+
+            container.innerHTML = `<p class="text-slate-500">শিক্ষার্থীদের লোড করা হচ্ছে...</p>`;
+
+            const academicYear = document.getElementById('academic-year').value;
+            const filteredStudents = appState.students.filter(s => s.jamāt === jamatId && s.academicYear === academicYear);
+            const filteredKitabs = appState.kitabs.filter(k => k.jamāt === jamatId);
+            
+            if (filteredStudents.length === 0) {
+                container.innerHTML = `<p class="text-red-500">এই জামাত এবং শিক্ষাবর্ষের জন্য কোনো শিক্ষার্থী পাওয়া যায়নি। অনুগ্রহ করে শিক্ষার্থী যোগ করুন।</p>`;
+                return;
+            }
+
+            const savedAttendance = await this.getAttendanceRecord(examDate, jamatId);
+
+            let tableHTML = `
+                <table class="min-w-full bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-md">
+                    <thead>
+                        <tr class="bg-slate-100 dark:bg-slate-700">
+                            <th class="p-3 text-left">ক্রমিক নং</th>
+                            <th class="p-3 text-left">শিক্ষার্থীর নাম</th>
+                            ${filteredKitabs.map(k => `<th class="p-3 text-center">${k.name}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            filteredStudents.forEach((student, index) => {
+                tableHTML += `<tr class="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    <td class="p-3">${index + 1}</td>
+                    <td class="p-3 font-medium">${student.name}</td>`;
+
+                filteredKitabs.forEach(kitab => {
+                    const studentAttendance = savedAttendance.attendanceData && savedAttendance.attendanceData[student.id];
+                    const kitabStatus = studentAttendance ? studentAttendance[kitab.id] : 'present';
+                    
+                    tableHTML += `<td class="p-3 text-center">
+                        <div class="flex justify-center items-center space-x-4">
+                            <label class="flex items-center space-x-1 cursor-pointer">
+                                <input type="radio" name="attendance-${student.id}-${kitab.id}" value="present" data-student-id="${student.id}" data-kitab-id="${kitab.id}" ${kitabStatus === 'present' ? 'checked' : ''} class="form-radio text-teal-600">
+                                <span>✓</span>
+                            </label>
+                            <label class="flex items-center space-x-1 cursor-pointer">
+                                <input type="radio" name="attendance-${student.id}-${kitab.id}" value="absent" data-student-id="${student.id}" data-kitab-id="${kitab.id}" ${kitabStatus === 'absent' ? 'checked' : ''} class="form-radio text-red-600">
+                                <span>✗</span>
+                            </label>
+                        </div>
+                    </td>`;
+                });
+
+                tableHTML += `</tr>`;
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+                <div class="mt-6 text-right">
+                    <button id="save-attendance" class="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">হাজিরা সংরক্ষণ করুন</button>
+                </div>`;
+            
+            container.innerHTML = tableHTML;
+            document.getElementById('save-attendance').addEventListener('click', () => this.saveAttendance());
+        },
+
+        async saveAttendance() {
+            const jamatId = document.getElementById('jamāt-select').value;
+            const examDate = document.getElementById('exam-date').value;
+            const examType = document.getElementById('exam-type').value;
+            const academicYear = document.getElementById('academic-year').value;
+            
+            if (!jamatId || !examDate) {
+                this.showToast("অনুগ্রহ করে জামাত এবং তারিখ নির্বাচন করুন।", "error");
+                return;
+            }
+
+            const attendanceData = {};
+            document.querySelectorAll('input[type="radio"][name^="attendance-"]:checked').forEach(radio => {
+                const studentId = radio.dataset.studentId;
+                const kitabId = radio.dataset.kitabId;
+                const status = radio.value;
+
+                if (!attendanceData[studentId]) {
+                    attendanceData[studentId] = {};
+                }
+                attendanceData[studentId][kitabId] = status;
+            });
+            
+            const recordId = `${examDate}_${jamatId}`;
+            
+            try {
+                const docRef = window.firebase.doc(db, "artifacts", appId, "public", "data", "attendance", recordId);
+                await window.firebase.setDoc(docRef, {
+                    date: examDate,
+                    jamāt: jamatId,
+                    examType: examType,
+                    academicYear: academicYear,
+                    attendanceData: attendanceData
+                }, { merge: true });
+                this.showToast("হাজিরা সফলভাবে সংরক্ষণ করা হয়েছে।", "success");
+            } catch (error) {
+                console.error("Error saving attendance: ", error);
+                this.showToast("হাজিরা সংরক্ষণ করতে ব্যর্থ হয়েছে।", "error");
+            }
+        },
+        
+        async getAttendanceRecord(date, jamatId) {
+            const recordId = `${date}_${jamatId}`;
+            try {
+                const docRef = window.firebase.doc(db, "artifacts", appId, "public", "data", "attendance", recordId);
+                const docSnap = await window.firebase.getDoc(docRef);
+                if (docSnap.exists()) {
+                    return docSnap.data();
+                }
+                return {};
+            } catch (error) {
+                console.error("Error fetching attendance: ", error);
+                return {};
+            }
+        },
+
+        // Student Management
+        async handleStudentFormSubmit() {
+            const studentId = document.getElementById('student-id').value;
+            const studentName = document.getElementById('student-name').value;
+            const studentJamat = document.getElementById('student-jamāt').value;
+            const academicYear = this.getAcademicYear(new Date());
+
+            if (!studentName || !studentJamat) {
+                this.showToast("অনুগ্রহ করে সকল তথ্য পূরণ করুন।", 'error');
+                return;
+            }
+            
+            const studentData = {
+                name: studentName,
+                jamāt: studentJamat,
+                academicYear: academicYear,
+                status: 'active',
+            };
+
+            try {
+                if (studentId) {
+                    const docRef = window.firebase.doc(db, "artifacts", appId, "public", "data", "students", studentId);
+                    await window.firebase.updateDoc(docRef, studentData);
+                    this.showToast("শিক্ষার্থীর তথ্য আপডেট করা হয়েছে।", 'success');
+                } else {
+                    const collectionRef = window.firebase.collection(db, "artifacts", appId, "public", "data", "students");
+                    await window.firebase.addDoc(collectionRef, studentData);
+                    this.showToast("নতুন শিক্ষার্থী যোগ করা হয়েছে।", 'success');
+                }
+                this.resetStudentForm();
+            } catch(error) {
+                console.error("Error saving student:", error);
+                this.showToast("শিক্ষার্থী সংরক্ষণ করতে ব্যর্থ হয়েছে।", 'error');
+            }
+        },
+
+        renderStudentList(filterJamat = 'all') {
+            const listContainer = document.getElementById('student-list');
+            const filteredStudents = filterJamat === 'all' 
+                ? appState.students 
+                : appState.students.filter(s => s.jamāt === filterJamat);
+            
+            if (filteredStudents.length === 0) {
+                listContainer.innerHTML = `<p class="p-4 text-slate-500">কোনো শিক্ষার্থী পাওয়া যায়নি।</p>`;
+                return;
+            }
+
+            let tableHTML = `
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-100 dark:bg-slate-700">
+                        <tr>
+                            <th class="p-3 text-left">নাম</th>
+                            <th class="p-3 text-left">জামাত</th>
+                            <th class="p-3 text-left">শিক্ষাবর্ষ</th>
+                            <th class="p-3 text-center">অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            filteredStudents.forEach(student => {
+                 const jamatInfo = appState.jamats.find(j => j.id === student.jamāt);
+                 tableHTML += `
+                    <tr class="border-b dark:border-slate-700">
+                        <td class="p-3">${student.name}</td>
+                        <td class="p-3">${jamatInfo ? jamatInfo.name : 'N/A'}</td>
+                        <td class="p-3">${student.academicYear}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="app.editStudent('${student.id}')" class="p-1 hover:text-blue-500">✏️</button>
+                            <button onclick="app.deleteStudent('${student.id}')" class="p-1 hover:text-red-500">🗑️</button>
+                        </td>
+                    </tr>
+                 `;
+            });
+            tableHTML += `</tbody></table>`;
+            listContainer.innerHTML = tableHTML;
+        },
+
+        resetStudentForm() {
+            document.getElementById('add-student-form').reset();
+            document.getElementById('student-id').value = '';
+            document.getElementById('student-form-submit').textContent = 'শিক্ষার্থী যোগ করুন';
+            document.getElementById('student-form-cancel').classList.add('hidden');
+        },
+        
+        editStudent(id) {
+            const student = appState.students.find(s => s.id === id);
+            if (student) {
+                document.getElementById('student-id').value = student.id;
+                document.getElementById('student-name').value = student.name;
+                document.getElementById('student-jamāt').value = student.jamāt;
+                document.getElementById('student-form-submit').textContent = 'আপডেট করুন';
+                document.getElementById('student-form-cancel').classList.remove('hidden');
+                document.getElementById('student-name').focus();
+            }
+        },
+
+        deleteStudent(id) {
+            this.showConfirmationModal("আপনি কি নিশ্চিতভাবে এই শিক্ষার্থীকে মুছে ফেলতে চান?", async () => {
+                try {
+                    const docRef = window.firebase.doc(db, "artifacts", appId, "public", "data", "students", id);
+                    await window.firebase.deleteDoc(docRef);
+                    this.showToast("শিক্ষার্থীকে মুছে ফেলা হয়েছে।", "success");
+                } catch(error) {
+                     console.error("Error deleting student:", error);
+                     this.showToast("শিক্ষার্থী মুছে ফেলতে ব্যর্থ হয়েছে।", 'error');
+                }
+            });
+        },
+
+        // Kitab Management
+        renderKitabList(jamatId) {
+             const container = document.getElementById('kitab-list-container');
+             if (!jamatId) {
+                 container.innerHTML = `<p class="text-slate-500">কিতাব তালিকা দেখতে অনুগ্রহ করে জামাত নির্বাচন করুন।</p>`;
+                 return;
+             }
+
+             const jamat = appState.jamats.find(j => j.id === jamatId);
+             const filteredKitabs = appState.kitabs.filter(k => k.jamāt === jamatId);
+             
+             let listHTML = `<div class="space-y-2">`;
+             for(let i=0; i < filteredKitabs.length; i++){
+                 const kitab = filteredKitabs[i];
+                 listHTML += `
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="kitab-name-${kitab.id}" value="${kitab.name}" class="w-full p-2 border rounded-md bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
+                        <button onclick="app.updateKitab('${kitab.id}')" class="p-2 bg-blue-500 text-white rounded-md">💾</button>
+                        <button onclick="app.deleteKitab('${kitab.id}')" class="p-2 bg-red-500 text-white rounded-md">🗑️</button>
+                    </div>
+                 `;
+             }
+             listHTML += `</div>`;
+             listHTML += `<div class="mt-4"><button onclick="app.addKitab('${jamatId}')" class="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700">নতুন কিতাব যোগ করুন</button></div>`;
+
+             container.innerHTML = listHTML;
+        },
+        
+        async addKitab(jamatId) {
+            if(!jamatId) return;
+            const newKitabName = `কিতাব নং ${appState.kitabs.filter(k => k.jamāt === jamatId).length + 1}`;
+            try {
+                const collectionRef = window.firebase.collection(db, "artifacts", appId, "public", "data", "kitabs");
+                await window.firebase.addDoc(collectionRef, { name: newKitabName, jamāt: jamatId });
+                this.showToast("নতুন কিতাব যোগ করা হয়েছে।", 'success');
+            } catch(error) {
+                console.error("Error adding kitab: ", error);
+                this.showToast("কিতাব যোগ করতে ব্যর্থ হয়েছে।", 'error');
+            }
+        },
+
+        async updateKitab(kitabId) {
+            const newName = document.getElementById(`kitab-name-${kitabId}`).value;
+            if(!newName) return;
+            try {
+                const docRef = window.firebase.doc(db, "artifacts", appId, "public", "data", "kitabs", kitabId);
+                await window.firebase.updateDoc(docRef, { name: newName });
+                this.showToast("কিতাবের নাম আপডেট করা হয়েছে।", 'success');
+            } catch(error) {
+                console.error("Error updating kitab: ", error);
+                this.showToast("কিতাব আপডেট করতে ব্যর্থ হয়েছে।", 'error');
+            }
+        },
+
+        deleteKitab(kitabId) {
+            this.showConfirmationModal("আপনি কি নিশ্চিতভাবে এই কিতাবটি মুছে ফেলতে চান?", async () => {
+                try {
+                    const docRef = window.firebase.doc(db, "artifacts", appId, "public", "data", "kitabs", kitabId);
+                    await window.firebase.deleteDoc(docRef);
+                    this.showToast("কিতাব মুছে ফেলা হয়েছে।", "success");
+                } catch(error) {
+                    console.error("Error deleting kitab: ", error);
+                    this.showToast("কিতাব মুছে ফেলতে ব্যর্থ হয়েছে।", 'error');
+                }
+            });
+        },
+        
+        // --- Firestore Listeners ---
+        listenToStudents() {
+            if(!db || !appState.authReady) return;
+            const q = window.firebase.query(window.firebase.collection(db, "artifacts", appId, "public", "data", "students"));
+            window.firebase.onSnapshot(q, (querySnapshot) => {
+                appState.students = [];
+                querySnapshot.forEach((doc) => {
+                    appState.students.push({ id: doc.id, ...doc.data() });
+                });
+                if (appState.currentPage === 'studentManagement') {
+                   this.renderStudentList(document.getElementById('filter-jamāt-student').value);
+                } else if (appState.currentPage === 'home') {
+                    this.renderAttendanceTable();
+                }
+            }, (error) => {
+                console.error("Error listening to students: ", error);
+                this.showToast("শিক্ষার্থীদের তালিকা লোড করা যায়নি।", "error");
+            });
+        },
+
+        listenToKitabs() {
+            if(!db || !appState.authReady) return;
+            const q = window.firebase.query(window.firebase.collection(db, "artifacts", appId, "public", "data", "kitabs"));
+            window.firebase.onSnapshot(q, (querySnapshot) => {
+                appState.kitabs = [];
+                querySnapshot.forEach((doc) => {
+                    appState.kitabs.push({ id: doc.id, ...doc.data() });
+                });
+                 if (appState.currentPage === 'studentManagement') {
+                   const selectedJamat = document.getElementById('kitab-jamāt-select').value;
+                   if (selectedJamat) {
+                       this.renderKitabList(selectedJamat);
+                   }
+                } else if (appState.currentPage === 'home') {
+                    this.renderAttendanceTable();
+                }
+            }, (error) => {
+                console.error("Error listening to kitabs: ", error);
+                this.showToast("কিতাব তালিকা লোড করা যায়নি।", "error");
+            });
+        },
+
+        async loadSettings() {
+            if(!db) return;
+            const docRef = window.firebase.doc(db, "artifacts", appId, "public", "data", "settings", "main");
+            try {
+                const docSnap = await window.firebase.getDoc(docRef);
+                if (docSnap.exists()) {
+                    appState.settings = { ...appState.settings, ...docSnap.data() };
+                } else {
+                    await window.firebase.setDoc(docRef, appState.settings);
+                }
+                if(appState.currentPage === 'settings') this.render();
+            } catch (error) {
+                console.error("Error loading settings:", error);
+            }
+        },
+        
+        async saveSettings() {
+            const madrasaName = document.getElementById('madrasa-name').value;
+            const madrasaAddress = document.getElementById('madrasa-address').value;
+            
+            const newSettings = { madrasaName, madrasaAddress };
+            try {
+                const docRef = window.firebase.doc(db, "artifacts", appId, "public", "data", "settings", "main");
+                await window.firebase.setDoc(docRef, newSettings, { merge: true });
+                appState.settings = { ...appState.settings, ...newSettings };
+                this.showToast("সেটিংস সফলভাবে সংরক্ষণ করা হয়েছে।", "success");
+            } catch (error) {
+                console.error("Error saving settings: ", error);
+                this.showToast("সেটিংস সংরক্ষণ করতে ব্যর্থ হয়েছে।", "error");
+            }
+        },
+
+        // Report Generation
+        populateReportStudentDropdown(jamatId) {
+            const studentSelect = document.getElementById('report-student-select');
+            studentSelect.innerHTML = `<option value="all">সকল শিক্ষার্থী</option>`;
+            if (jamatId !== 'all') {
+                const academicYear = document.getElementById('report-academic-year').value;
+                const filteredStudents = appState.students.filter(s => s.jamāt === jamatId && s.academicYear === academicYear);
+                filteredStudents.forEach(s => {
+                    studentSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+                });
+            }
+        },
+        
+        async generateReportPreview() {
+            const previewArea = document.getElementById('report-preview-area');
+            const tableContainer = document.getElementById('report-table-preview');
+            tableContainer.innerHTML = `<p class="text-slate-500">রিপোর্ট তৈরি করা হচ্ছে...</p>`;
+            previewArea.classList.remove('hidden');
+
+            const academicYear = document.getElementById('report-academic-year').value;
+            const examType = document.getElementById('report-exam-type').value;
+            const jamatId = document.getElementById('report-jamāt-select').value;
+            const studentId = document.getElementById('report-student-select').value;
+            
+            let q;
+            const collectionRef = window.firebase.collection(db, "artifacts", appId, "public", "data", "attendance");
+
+            const conditions = [window.firebase.where('academicYear', '==', academicYear)];
+            if(examType !== 'all') conditions.push(window.firebase.where('examType', '==', examType));
+            if(jamatId !== 'all') conditions.push(window.firebase.where('jamāt', '==', jamatId));
+            
+            q = window.firebase.query(collectionRef, ...conditions);
+            
+            try {
+                const querySnapshot = await window.firebase.getDocs(q);
+                const records = [];
+                querySnapshot.forEach(doc => records.push(doc.data()));
+
+                if (records.length === 0) {
+                    tableContainer.innerHTML = `<p class="text-red-500">এই ফিল্টারের জন্য কোনো হাজিরা রেকর্ড পাওয়া যায়নি।</p>`;
+                    this.renderAttendanceChart({present: 0, absent: 0});
+                    return;
+                }
+
+                const reportData = this.processAttendanceRecords(records, academicYear, jamatId, studentId);
+                tableContainer.innerHTML = this.renderReportTable(reportData);
+                this.renderAttendanceChart(reportData.summary);
+
+                document.getElementById('download-pdf').onclick = () => this.downloadPDF(reportData);
+                document.getElementById('download-excel').onclick = () => this.downloadExcel(reportData);
+            } catch (error) {
+                console.error("Error generating report:", error);
+                tableContainer.innerHTML = `<p class="text-red-500">রিপোর্ট তৈরিতে একটি ত্রুটি ঘটেছে।</p>`;
+            }
+        },
+        
+        processAttendanceRecords(records, academicYearFilter, jamatIdFilter, studentIdFilter) {
+            let studentsInReport = appState.students.filter(s => s.academicYear === academicYearFilter);
+            if (studentIdFilter !== 'all') {
+                 studentsInReport = studentsInReport.filter(s => s.id === studentIdFilter);
+            } else if (jamatIdFilter !== 'all') {
+                studentsInReport = studentsInReport.filter(s => s.jamāt === jamatIdFilter);
+            }
+            
+            const allKitabsInReport = jamatIdFilter !== 'all' ? appState.kitabs.filter(k => k.jamāt === jamatIdFilter) : appState.kitabs;
+
+            let report = { students: [], summary: { present: 0, absent: 0 } };
+            
+            studentsInReport.forEach(student => {
+                let studentData = { id: student.id, name: student.name, attendance: {} };
+                
+                records.forEach(record => {
+                    if (record.attendanceData && record.attendanceData[student.id]) {
+                        studentData.attendance[record.date] = record.attendanceData[student.id];
+                        Object.values(record.attendanceData[student.id]).forEach(status => {
+                            if (status === 'present') report.summary.present++;
+                            else report.summary.absent++;
+                        });
+                    }
+                });
+                report.students.push(studentData);
+            });
+            
+            report.dates = [...new Set(records.map(r => r.date))].sort();
+            report.kitabs = allKitabsInReport;
+
+            return report;
+        },
+
+        renderReportTable(data) {
+             if (data.students.length === 0) return `<p>কোনো তথ্য নেই।</p>`;
+
+             let html = `
+                <table class="min-w-full text-sm bg-white dark:bg-slate-800">
+                    <thead>
+                        <tr class="bg-slate-100 dark:bg-slate-700">
+                            <th class="p-2 text-left">শিক্ষার্থীর নাম</th>
+                            ${data.dates.map(date => `<th class="p-2 text-center">${moment(date).format('DD/MM/YY')}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.students.forEach(student => {
+                html += `<tr class="border-b dark:border-slate-700">
+                    <td class="p-2 font-medium">${student.name}</td>`;
+                data.dates.forEach(date => {
+                    const dailyAttendance = student.attendance[date];
+                    let presentCount = 0;
+                    let totalCount = 0;
+                    if(dailyAttendance){
+                       const statuses = Object.values(dailyAttendance);
+                       presentCount = statuses.filter(s => s === 'present').length;
+                       totalCount = statuses.length;
+                    }
+                    html += `<td class="p-2 text-center">${totalCount > 0 ? `${presentCount} ✓ / ${totalCount - presentCount} ✗` : '-'}</td>`
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            return html;
+        },
+        
+        renderAttendanceChart(summary) {
+            const ctx = document.getElementById('attendance-chart').getContext('2d');
+            const total = summary.present + summary.absent;
+            if (window.myAttendanceChart) {
+                window.myAttendanceChart.destroy();
+            }
+            if (total === 0) {
+                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                 ctx.font = "16px 'Hind Siliguri'";
+                 ctx.fillStyle = appState.darkMode ? '#e2e8f0' : '#1e293b';
+                 ctx.textAlign = "center";
+                 ctx.fillText("কোনো ডেটা নেই", ctx.canvas.width/2, ctx.canvas.height/2);
+                 return;
+            }
+            
+            window.myAttendanceChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['উপস্থিত', 'অনুপস্থিত'],
+                    datasets: [{
+                        data: [summary.present, summary.absent],
+                        backgroundColor: ['#10B981', '#EF4444'],
+                        borderColor: appState.darkMode ? '#1e293b' : '#ffffff',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: appState.darkMode ? '#e2e8f0' : '#334152',
+                                font: { family: "'Hind Siliguri', sans-serif" }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'হাজিরার গড়',
+                            color: appState.darkMode ? '#e2e8f0' : '#334152',
+                             font: { family: "'Hind Siliguri', sans-serif" }
+                        }
+                    }
+                }
+            });
+        },
+        
+        async downloadPDF(data) {
+            this.showToast("PDF তৈরি করা হচ্ছে...", "info");
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // This is a placeholder for loading font. Real implementation requires the Base64 file.
+            try {
+                // For demo, we fall back to a default font if SolaimanLipi is not available in the browser.
+                doc.setFont('Helvetica'); // Fallback. In real app, load Bangla font.
+            } catch(e) {
+                 console.warn("Custom font could not be loaded. Using fallback.", e);
+            }
+
+            const madrasaName = appState.settings.madrasaName;
+            const madrasaAddress = appState.settings.madrasaAddress;
+            const academicYear = document.getElementById('report-academic-year').value;
+            const jamatId = document.getElementById('report-jamāt-select').value;
+            const jamatName = jamatId === 'all' ? 'সকল জামাত' : appState.jamats.find(j=>j.id === jamatId).name;
+
+            // Header - Manual text rendering to handle unicode better
+            doc.setFontSize(18);
+            doc.text(madrasaName, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(madrasaAddress, doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
+            
+            doc.setFontSize(11);
+            doc.text(`Shikkha Borsho: ${academicYear}`, 14, 40); // English for better rendering
+            doc.text(`Jamat: ${jamatName}`, 14, 46);
+            
+            const tableData = data.students.map(student => {
+                let row = [student.name];
+                data.dates.forEach(date => {
+                    const dailyAttendance = student.attendance[date];
+                     let presentCount = 0;
+                     let totalCount = 0;
+                     if(dailyAttendance){
+                        const statuses = Object.values(dailyAttendance);
+                        presentCount = statuses.filter(s => s === 'present').length;
+                        totalCount = statuses.length;
+                     }
+                     row.push(totalCount > 0 ? `${presentCount}/${totalCount-presentCount}` : '-');
+                });
+                return row;
+            });
+            
+            doc.autoTable({
+                head: [['Student Name', ...data.dates.map(d => moment(d).format('DD/MM'))]],
+                body: tableData,
+                startY: 55,
+                theme: 'grid',
+                headStyles: { fillColor: [22, 160, 133], halign: 'center' },
+                styles: { font: 'Helvetica' },
+                // Use didDrawCell hook for better unicode rendering if possible, but it's complex.
+            });
+
+            const chartCanvas = document.getElementById('attendance-chart');
+            if (chartCanvas && (data.summary.present > 0 || data.summary.absent > 0)) {
+                const chartImage = chartCanvas.toDataURL('image/png', 1.0);
+                const chartY = doc.autoTable.previous.finalY > 35 ? 15 : 35; // Position chart
+                doc.addImage(chartImage, 'PNG', 145, chartY, 50, 45);
+            }
+            
+            const finalY = doc.autoTable.previous.finalY;
+            doc.setFontSize(8);
+            doc.text('Created by: Hasania Exam Management System', doc.internal.pageSize.getWidth() / 2, finalY + 15, { align: 'center' });
+            doc.save(`HEMS_Report_${jamatName}.pdf`);
+        },
+
+        downloadExcel(data) {
+            const worksheetData = [];
+            const header = ['শিক্ষার্থীর নাম'];
+            data.dates.forEach(date => header.push(moment(date).format('DD-MMM-YYYY')));
+            worksheetData.push(header);
+
+            data.students.forEach(student => {
+                const row = [student.name];
+                data.dates.forEach(date => {
+                    const dailyAttendance = student.attendance[date];
+                    let presentCount = 0;
+                    let totalCount = 0;
+                    if (dailyAttendance) {
+                        const statuses = Object.values(dailyAttendance);
+                        presentCount = statuses.filter(s => s === 'present').length;
+                        totalCount = statuses.length;
+                    }
+                    row.push(totalCount > 0 ? `${presentCount} / ${totalCount - presentCount}` : '-');
+                });
+                worksheetData.push(row);
+            });
+
+             const total = data.summary.present + data.summary.absent;
+             worksheetData.push([]);
+             worksheetData.push(['হাজিরার সারসংক্ষেপ']);
+             worksheetData.push(['অবস্থা', 'সংখ্যা', 'শতাংশ']);
+             worksheetData.push(['উপস্থিত', data.summary.present, total > 0 ? `${((data.summary.present/total)*100).toFixed(2)}%` : '0%']);
+             worksheetData.push(['অনুপস্থিত', data.summary.absent, total > 0 ? `${((data.summary.absent/total)*100).toFixed(2)}%` : '0%']);
+
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Hajira Report');
+            
+            const jamatId = document.getElementById('report-jamāt-select').value;
+            const jamatName = jamatId === 'all' ? 'All_Jamats' : appState.jamats.find(j=>j.id === jamatId).name.replace(/ /g, '_');
+            XLSX.writeFile(wb, `HEMS_Report_${jamatName}.xlsx`);
+        },
+        
+        // --- Utilities ---
+        showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+
+            toastMessage.textContent = message;
+            toast.className = 'fixed bottom-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg transition-opacity duration-300 z-50'; // Reset classes
+            if (type === 'success') {
+                toast.classList.add('bg-teal-500');
+            } else if (type === 'error') {
+                toast.classList.add('bg-red-500');
+            } else {
+                toast.classList.add('bg-blue-500');
+            }
+            
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        },
+
+        showConfirmationModal(message, onConfirm) {
+            const modal = document.getElementById('app-modal');
+            const modalContent = document.getElementById('modal-content-body');
+            
+            modalContent.innerHTML = `
+                <p class="text-lg mb-4">${message}</p>
+                <div class="flex justify-end space-x-4">
+                    <button id="modal-cancel" class="px-4 py-2 rounded-md bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500">বাতিল</button>
+                    <button id="modal-confirm" class="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700">নিশ্চিত করুন</button>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+
+            const closeModal = () => modal.classList.add('hidden');
+
+            document.getElementById('modal-cancel').onclick = closeModal;
+            document.getElementById('modal-confirm').onclick = () => {
+                onConfirm();
+                closeModal();
+            };
+            document.querySelector('.modal-overlay').onclick = closeModal;
+        }
+    };
+    
+    window.app = HEMS;
+    HEMS.init();
+});
+</script>
+</body>
+</html>

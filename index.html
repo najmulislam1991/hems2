@@ -153,7 +153,7 @@
             <button class="lg:hidden mb-4 p-2 rounded-md bg-gray-200 no-print" id="open-sidebar-btn">
                 <i data-feather="menu"></i>
             </button>
-            <div id="loader" class="fixed inset-0 bg-white/70 flex items-center justify-center z-50">
+            <div id="loader" class="hidden fixed inset-0 bg-white/70 flex items-center justify-center z-50">
                 <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-700"></div>
             </div>
             <div id="auth-error" class="hidden fixed inset-0 bg-red-100 text-red-800 p-8 text-center flex flex-col justify-center items-center z-50">
@@ -228,4 +228,818 @@
                             <h3 class="text-xl font-semibold">হাজিরা তালিকা</h3>
                             <div>
                                 <button id="mark-all-present" class="bg-green-500 text-white px-3 py-1 rounded-md text-sm">সবাই উপস্থিত</button>
-                                <button id="mark-all-absent" class="bg-red-500 text-white 
+                                <button id="mark-all-absent" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm ml-2">সবাই অনুপস্থিত</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left font-semibold">রোল</th>
+                                        <th class="py-3 px-4 text-left font-semibold">নাম</th>
+                                        <th class="py-3 px-4 text-center font-semibold">হাজিরা</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-list"></tbody>
+                            </table>
+                        </div>
+                        <button id="save-attendance-btn" class="btn-primary mt-6">হাজিরা সেভ করুন</button>
+                    </div>
+                </section>
+
+                <!-- Reports Page -->
+                <section id="reports" class="page hidden">
+                    <h2 class="text-3xl font-bold mb-6">রিপোর্ট</h2>
+                     <div class="card">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label for="report-exam" class="font-semibold block mb-2">পরীক্ষা নির্বাচন করুন</label>
+                                <select id="report-exam" class="input-field"></select>
+                            </div>
+                            <div>
+                                <label for="report-class" class="font-semibold block mb-2">ক্লাস নির্বাচন করুন</label>
+                                <select id="report-class" class="input-field"></select>
+                            </div>
+                        </div>
+                        <button id="generate-report-btn" class="btn-primary">রিপোর্ট তৈরি করুন</button>
+                    </div>
+                    
+                    <div id="report-view" class="mt-8 card hidden">
+                         <div class="flex justify-between items-center mb-4 no-print">
+                            <h3 class="text-xl font-semibold" id="report-title">রিপোর্ট</h3>
+                            <button id="print-report-btn" class="btn-primary flex items-center"><i data-feather="printer" class="mr-2 h-4 w-4"></i> প্রিন্ট</button>
+                         </div>
+                         <div id="print-area">
+                            <div id="print-header-placeholder" class="text-center mb-6 hidden">
+                                <h2 class="text-2xl font-bold">আল-হিদায়া মাদরাসা</h2>
+                                <p>পরীক্ষার হাজিরা রিপোর্ট</p>
+                                <p id="print-report-meta"></p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-4 text-center">
+                                <div class="p-4 bg-green-100 rounded-lg">
+                                    <p class="font-semibold">মোট উপস্থিত</p>
+                                    <p id="report-present" class="text-2xl font-bold text-green-700">0</p>
+                                </div>
+                                <div class="p-4 bg-red-100 rounded-lg">
+                                    <p class="font-semibold">মোট অনুপস্থিত</p>
+                                    <p id="report-absent" class="text-2xl font-bold text-red-700">0</p>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full bg-white">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="py-3 px-4 text-left font-semibold">রোল</th>
+                                            <th class="py-3 px-4 text-left font-semibold">নাম</th>
+                                            <th class="py-3 px-4 text-center font-semibold">অবস্থা</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="report-list"></tbody>
+                                </table>
+                            </div>
+                         </div>
+                    </div>
+                </section>
+
+                <!-- Students Page -->
+                <section id="students" class="page hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">ছাত্র ছাত্রী ব্যবস্থাপনা</h2>
+                        <button id="add-student-btn" class="btn-primary flex items-center"><i data-feather="plus" class="mr-2"></i> নতুন ছাত্র</button>
+                    </div>
+                    <div class="card">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left font-semibold">রোল</th>
+                                        <th class="py-3 px-4 text-left font-semibold">নাম</th>
+                                        <th class="py-3 px-4 text-left font-semibold">ক্লাস</th>
+                                        <th class="py-3 px-4 text-right font-semibold">অ্যাকশন</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="students-list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Classes Page -->
+                <section id="classes" class="page hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">ক্লাস ব্যবস্থাপনা</h2>
+                        <button id="add-class-btn" class="btn-primary flex items-center"><i data-feather="plus" class="mr-2"></i> নতুন ক্লাস</button>
+                    </div>
+                    <div class="card">
+                         <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left font-semibold">ক্লাসের নাম</th>
+                                        <th class="py-3 px-4 text-right font-semibold">অ্যাকশন</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="classes-list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Exams Page -->
+                <section id="exams" class="page hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">পরীক্ষা ব্যবস্থাপনা</h2>
+                        <button id="add-exam-btn" class="btn-primary flex items-center"><i data-feather="plus" class="mr-2"></i> নতুন পরীক্ষা</button>
+                    </div>
+                     <div class="card">
+                         <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left font-semibold">পরীক্ষার নাম</th>
+                                        <th class="py-3 px-4 text-left font-semibold">তারিখ</th>
+                                        <th class="py-3 px-4 text-right font-semibold">অ্যাকশন</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="exams-list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-container" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4">
+        <!-- Student Modal -->
+        <div id="student-modal" class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 hidden">
+            <h3 id="student-modal-title" class="text-2xl font-bold mb-4">নতুন ছাত্র যোগ করুন</h3>
+            <form id="student-form">
+                <input type="hidden" id="student-id">
+                <div class="mb-4">
+                    <label for="student-name" class="font-semibold block mb-2">ছাত্রের নাম</label>
+                    <input type="text" id="student-name" class="input-field" required>
+                </div>
+                <div class="mb-4">
+                    <label for="student-roll" class="font-semibold block mb-2">রোল নম্বর</label>
+                    <input type="number" id="student-roll" class="input-field" required>
+                </div>
+                <div class="mb-4">
+                    <label for="student-class" class="font-semibold block mb-2">ক্লাস</label>
+                    <select id="student-class" class="input-field" required></select>
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button type="button" class="modal-cancel-btn bg-gray-200 text-gray-800 px-4 py-2 rounded-md mr-2">বাতিল</button>
+                    <button type="submit" class="btn-primary">সেভ করুন</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Class/Exam Modal -->
+        <div id="item-modal" class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 hidden">
+            <h3 id="item-modal-title" class="text-2xl font-bold mb-4"></h3>
+            <form id="item-form">
+                 <input type="hidden" id="item-id">
+                 <input type="hidden" id="item-type">
+                <div class="mb-4">
+                    <label for="item-name" class="font-semibold block mb-2" id="item-name-label"></label>
+                    <input type="text" id="item-name" class="input-field" required>
+                </div>
+                <div id="item-date-container" class="mb-4 hidden">
+                     <label for="item-date" class="font-semibold block mb-2">তারিখ</label>
+                    <input type="date" id="item-date" class="input-field">
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button type="button" class="modal-cancel-btn bg-gray-200 text-gray-800 px-4 py-2 rounded-md mr-2">বাতিল</button>
+                    <button type="submit" class="btn-primary">সেভ করুন</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Confirmation Modal -->
+        <div id="confirm-modal" class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm p-6 hidden">
+            <h3 class="text-xl font-bold mb-2">আপনি কি নিশ্চিত?</h3>
+            <p id="confirm-modal-message" class="text-gray-600 mb-6"></p>
+            <div class="flex justify-end">
+                <button type="button" id="confirm-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md mr-2">বাতিল করুন</button>
+                <button type="button" id="confirm-ok-btn" class="btn-danger">নিশ্চিত করুন</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 translate-y-10 transition-all duration-300">
+        <p id="toast-message"></p>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, writeBatch, limit, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration and Initialization ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'madrasah-attendance-dev';
+
+        let app, db, auth;
+        try {
+            if (Object.keys(firebaseConfig).length === 0) {
+                throw new Error("Firebase config is missing.");
+            }
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('auth-error').classList.remove('hidden');
+        }
+
+        let userId = null;
+        let dbPaths = {};
+
+        // --- UI Elements ---
+        const loader = document.getElementById('loader');
+        const allPages = document.querySelectorAll('.page');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const modalContainer = document.getElementById('modal-container');
+        const confirmModal = document.getElementById('confirm-modal');
+
+        // --- Authentication ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('userIdDisplay').textContent = userId.substring(0, 8) + '...';
+                
+                dbPaths = {
+                    publicData: `/artifacts/${appId}/public/data`,
+                };
+
+                setupRealtimeListeners();
+            } else {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try {
+                            // First, try to sign in with the custom token
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } catch (customTokenError) {
+                            // If the custom token fails (like auth/invalid-claims), silently fall back to anonymous sign-in.
+                            // This prevents showing a console error to the user for an environment-specific token issue.
+                            await signInAnonymously(auth);
+                        }
+                    } else {
+                        // If no custom token is provided, sign in anonymously
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    // Catch any other potential errors during the auth process
+                    console.error("General authentication error:", error);
+                    loader.classList.add('hidden');
+                    document.getElementById('auth-error').classList.remove('hidden');
+                }
+            }
+        });
+
+        // --- Navigation Logic ---
+        function showPage(pageId) {
+            allPages.forEach(page => page.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+
+            navLinks.forEach(link => {
+                link.classList.remove('active', 'bg-white/20');
+                if (link.dataset.page === pageId) {
+                    link.classList.add('active', 'bg-white/20');
+                }
+            });
+            feather.replace(); // Refresh icons
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showPage(link.dataset.page);
+            });
+        });
+        
+        // Sidebar toggle for mobile
+        document.getElementById('open-sidebar-btn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('-translate-x-full');
+        });
+        document.getElementById('close-sidebar-btn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+        });
+
+        // --- Toast Notification ---
+        function showToast(message, isSuccess = true) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.className = toast.className.replace(/bg-\w+-\d+/, isSuccess ? 'bg-green-600' : 'bg-red-600');
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10');
+            }, 3000);
+        }
+
+        // --- Modal Logic ---
+        function openModal(modalId) {
+            modalContainer.classList.remove('hidden');
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal() {
+            modalContainer.classList.add('hidden');
+            modalContainer.querySelectorAll('.modal-content').forEach(modal => modal.classList.add('hidden'));
+        }
+        
+        document.querySelectorAll('.modal-cancel-btn').forEach(btn => btn.addEventListener('click', closeModal));
+        modalContainer.addEventListener('click', (e) => {
+            if (e.target === modalContainer) closeModal();
+        });
+        
+        // --- Confirmation Modal Logic ---
+        let confirmCallback = null;
+        function showConfirmModal(message, onConfirm) {
+            document.getElementById('confirm-modal-message').textContent = message;
+            confirmCallback = onConfirm;
+            openModal('confirm-modal');
+        }
+        document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+            confirmCallback = null;
+            closeModal();
+        });
+        document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+            if (typeof confirmCallback === 'function') {
+                confirmCallback();
+            }
+            confirmCallback = null;
+            closeModal();
+        });
+
+
+        // --- Firestore Collections References ---
+        const getCollectionRef = (collectionName) => collection(db, `${dbPaths.publicData}/${collectionName}`);
+        
+        // State variables to hold data
+        let allExams = [];
+        let allStudents = [];
+        let allClasses = [];
+
+        // --- Realtime Data Listeners Setup ---
+        function setupRealtimeListeners() {
+            if (!userId) {
+                console.error("User not authenticated, cannot setup listeners.");
+                loader.classList.add('hidden');
+                return;
+            }
+
+            try {
+                // Listener for Classes
+                onSnapshot(query(getCollectionRef('classes')), (snapshot) => {
+                    const classesList = document.getElementById('classes-list');
+                    const studentClassSelect = document.getElementById('student-class');
+                    const attendanceClassSelect = document.getElementById('attendance-class');
+                    const reportClassSelect = document.getElementById('report-class');
+                    
+                    classesList.innerHTML = '';
+                    const classOptions = ['<option value="">ক্লাস নির্বাচন করুন</option>'];
+                    allClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    allClasses.sort((a, b) => a.name.localeCompare(b.name, 'bn')).forEach(cls => {
+                        const row = `<tr class="border-b"> <td class="py-3 px-4">${cls.name}</td> <td class="py-3 px-4 text-right"> <button class="edit-class-btn text-blue-500 hover:text-blue-700 mr-2" data-id="${cls.id}"><i data-feather="edit-2" class="h-5 w-5"></i></button> <button class="delete-class-btn text-red-500 hover:text-red-700" data-id="${cls.id}"><i data-feather="trash-2" class="h-5 w-5"></i></button> </td> </tr>`;
+                        classesList.innerHTML += row;
+                        classOptions.push(`<option value="${cls.id}">${cls.name}</option>`);
+                    });
+                    studentClassSelect.innerHTML = classOptions.join('');
+                    attendanceClassSelect.innerHTML = classOptions.join('');
+                    reportClassSelect.innerHTML = classOptions.join('');
+                    document.getElementById('total-classes').textContent = allClasses.length;
+                    feather.replace();
+                });
+
+                // Listener for Exams
+                onSnapshot(query(getCollectionRef('exams')), (snapshot) => {
+                    const examsList = document.getElementById('exams-list');
+                    const attendanceExamSelect = document.getElementById('attendance-exam');
+                    const reportExamSelect = document.getElementById('report-exam');
+                    
+                    examsList.innerHTML = '';
+                    const examOptions = ['<option value="">পরীক্ষা নির্বাচন করুন</option>'];
+                    allExams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    allExams.sort((a,b) => (b.date || '').localeCompare(a.date || '')).forEach(exam => {
+                        const row = `<tr class="border-b"> <td class="py-3 px-4">${exam.name}</td> <td class="py-3 px-4">${exam.date ? new Date(exam.date).toLocaleDateString('bn-BD') : 'N/A'}</td> <td class="py-3 px-4 text-right"> <button class="edit-exam-btn text-blue-500 hover:text-blue-700 mr-2" data-id="${exam.id}"><i data-feather="edit-2" class="h-5 w-5"></i></button> <button class="delete-exam-btn text-red-500 hover:text-red-700" data-id="${exam.id}"><i data-feather="trash-2" class="h-5 w-5"></i></button> </td> </tr>`;
+                        examsList.innerHTML += row;
+                        examOptions.push(`<option value="${exam.id}">${exam.name}</option>`);
+                    });
+                    attendanceExamSelect.innerHTML = examOptions.join('');
+                    reportExamSelect.innerHTML = examOptions.join('');
+                    document.getElementById('total-exams').textContent = allExams.length;
+                    feather.replace();
+                });
+
+                // Listener for Students
+                onSnapshot(query(getCollectionRef('students')), (snapshot) => {
+                    const studentsList = document.getElementById('students-list');
+                    studentsList.innerHTML = '';
+                    allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    allStudents.sort((a,b) => (a.roll || 0) - (b.roll || 0));
+
+                    allStudents.forEach(student => {
+                        const className = allClasses.find(c => c.id === student.classId)?.name || 'N/A';
+                        const row = `<tr class="border-b"> <td class="py-3 px-4">${student.roll}</td> <td class="py-3 px-4">${student.name}</td> <td class="py-3 px-4">${className}</td> <td class="py-3 px-4 text-right"> <button class="edit-student-btn text-blue-500 hover:text-blue-700 mr-2" data-id="${student.id}"><i data-feather="edit-2" class="h-5 w-5"></i></button> <button class="delete-student-btn text-red-500 hover:text-red-700" data-id="${student.id}"><i data-feather="trash-2" class="h-5 w-5"></i></button> </td> </tr>`;
+                        studentsList.innerHTML += row;
+                    });
+                    document.getElementById('total-students').textContent = allStudents.length;
+                    feather.replace();
+                    loader.classList.add('hidden');
+                });
+
+                // Listener for Recent Activities
+                const recentQuery = query(getCollectionRef('attendance'), orderBy('date', 'desc'), limit(5));
+                onSnapshot(recentQuery, (snapshot) => {
+                    const activitiesList = document.getElementById('recent-activities');
+                    if(snapshot.empty) {
+                        activitiesList.innerHTML = `<li>কোনো সাম্প্রতিক কার্যক্রম পাওয়া যায়নি।</li>`;
+                        return;
+                    }
+                    activitiesList.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const className = allClasses.find(c => c.id === data.classId)?.name || 'Unknown Class';
+                        const examName = allExams.find(e => e.id === data.examId)?.name || 'Unknown Exam';
+                        const date = new Date(data.date).toLocaleDateString('bn-BD');
+                        const li = `
+                            <li class="flex items-center">
+                                <i data-feather="check" class="w-4 h-4 mr-3 text-green-500"></i>
+                                <span>${date} তারিখে <strong>${className}</strong> এর <strong>${examName}</strong> এর হাজিরা নেয়া হয়েছে।</span>
+                            </li>
+                        `;
+                        activitiesList.innerHTML += li;
+                    });
+                    feather.replace();
+                });
+                
+                // Calculate today's attendance average
+                const today = new Date().toISOString().slice(0, 10);
+                const q = query(getCollectionRef('attendance'), where("date", "==", today));
+                onSnapshot(q, (snapshot) => {
+                    let totalPresent = 0, totalStudentsCounted = 0;
+                    snapshot.forEach(doc => {
+                        const records = doc.data().records;
+                        totalPresent += Object.values(records).filter(status => status === 'present').length;
+                        totalStudentsCounted += Object.keys(records).length;
+                    });
+                    const avg = totalStudentsCounted > 0 ? ((totalPresent / totalStudentsCounted) * 100).toFixed(0) : 0;
+                    document.getElementById('today-attendance').textContent = `${avg}%`;
+                });
+
+            } catch(e) {
+                console.error("Error setting up listeners:", e);
+                loader.classList.add('hidden');
+                showToast("ডেটা লোড করতে সমস্যা হয়েছে।", false);
+            }
+        }
+        
+        // --- CRUD for Classes and Exams ---
+        document.getElementById('add-class-btn').addEventListener('click', () => {
+            const form = document.getElementById('item-form');
+            form.reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('item-type').value = 'class';
+            document.getElementById('item-modal-title').textContent = 'নতুন ক্লাস যোগ করুন';
+            document.getElementById('item-name-label').textContent = 'ক্লাসের নাম';
+            document.getElementById('item-date-container').classList.add('hidden');
+            openModal('item-modal');
+        });
+
+        document.getElementById('add-exam-btn').addEventListener('click', () => {
+            const form = document.getElementById('item-form');
+            form.reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('item-type').value = 'exam';
+            document.getElementById('item-modal-title').textContent = 'নতুন পরীক্ষা যোগ করুন';
+            document.getElementById('item-name-label').textContent = 'পরীক্ষার নাম';
+            const dateContainer = document.getElementById('item-date-container');
+            dateContainer.classList.remove('hidden');
+            document.getElementById('item-date').valueAsDate = new Date();
+            openModal('item-modal');
+        });
+
+        document.getElementById('item-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('item-id').value;
+            const type = document.getElementById('item-type').value;
+            const name = document.getElementById('item-name').value.trim();
+            const date = document.getElementById('item-date').value;
+            
+            if (!name) return;
+            const collectionName = type === 'class' ? 'classes' : 'exams';
+            const data = { name };
+            if (type === 'exam' && date) data.date = date;
+
+            try {
+                if (id) {
+                    await updateDoc(doc(getCollectionRef(collectionName), id), data);
+                    showToast('সফলভাবে আপডেট করা হয়েছে।');
+                } else {
+                    await addDoc(getCollectionRef(collectionName), data);
+                    showToast('সফলভাবে যোগ করা হয়েছে।');
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Error saving item:", error);
+                showToast('একটি ত্রুটি হয়েছে।', false);
+            }
+        });
+
+        document.getElementById('classes-list').addEventListener('click', async (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            const id = target.dataset.id;
+            
+            if (target.matches('.edit-class-btn, .edit-class-btn *')) {
+                const cls = allClasses.find(c => c.id === id);
+                document.getElementById('item-id').value = id;
+                document.getElementById('item-type').value = 'class';
+                document.getElementById('item-name').value = cls.name;
+                document.getElementById('item-modal-title').textContent = 'ক্লাস এডিট করুন';
+                document.getElementById('item-name-label').textContent = 'ক্লাসের নাম';
+                document.getElementById('item-date-container').classList.add('hidden');
+                openModal('item-modal');
+            } else if (target.matches('.delete-class-btn, .delete-class-btn *')) {
+                showConfirmModal('আপনি কি নিশ্চিতভাবে এই ক্লাসটি মুছে ফেলতে চান? এটি করলে এই ক্লাসের ছাত্রদের তথ্য থেকেও ক্লাস মুছে যাবে।', async () => {
+                    try {
+                        const q = query(getCollectionRef('students'), where("classId", "==", id));
+                        const studentDocs = await getDocs(q);
+                        const batch = writeBatch(db);
+                        studentDocs.forEach(studentDoc => {
+                            batch.update(studentDoc.ref, { classId: '' });
+                        });
+                        batch.delete(doc(getCollectionRef('classes'), id));
+                        await batch.commit();
+                        showToast('ক্লাস সফলভাবে মুছে ফেলা হয়েছে।');
+                    } catch (err) {
+                        console.error("Error deleting class: ", err);
+                        showToast('ক্লাস মুছতে একটি সমস্যা হয়েছে।', false);
+                    }
+                });
+            }
+        });
+
+        document.getElementById('exams-list').addEventListener('click', async (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            const id = target.dataset.id;
+            
+            if (target.matches('.edit-exam-btn, .edit-exam-btn *')) {
+                const exam = allExams.find(ex => ex.id === id);
+                document.getElementById('item-id').value = id;
+                document.getElementById('item-type').value = 'exam';
+                document.getElementById('item-name').value = exam.name;
+                document.getElementById('item-date').value = exam.date || '';
+                document.getElementById('item-modal-title').textContent = 'পরীক্ষা এডিট করুন';
+                document.getElementById('item-name-label').textContent = 'পরীক্ষার নাম';
+                document.getElementById('item-date-container').classList.remove('hidden');
+                openModal('item-modal');
+            } else if (target.matches('.delete-exam-btn, .delete-exam-btn *')) {
+                showConfirmModal('আপনি কি নিশ্চিতভাবে এই পরীক্ষাটি মুছে ফেলতে চান?', async () => {
+                     await deleteDoc(doc(getCollectionRef('exams'), id));
+                     showToast('পরীক্ষা সফলভাবে মুছে ফেলা হয়েছে।');
+                });
+            }
+        });
+
+
+        // --- CRUD for Students ---
+        document.getElementById('add-student-btn').addEventListener('click', () => {
+            const form = document.getElementById('student-form');
+            form.reset();
+            document.getElementById('student-id').value = '';
+            document.getElementById('student-modal-title').textContent = 'নতুন ছাত্র যোগ করুন';
+            openModal('student-modal');
+        });
+
+        document.getElementById('student-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('student-id').value;
+            const studentData = {
+                name: document.getElementById('student-name').value.trim(),
+                roll: document.getElementById('student-roll').value,
+                classId: document.getElementById('student-class').value,
+            };
+
+            if (!studentData.name || !studentData.roll || !studentData.classId) {
+                showToast('অনুগ্রহ করে সকল তথ্য পূরণ করুন।', false);
+                return;
+            }
+            
+            try {
+                 if (id) {
+                    await updateDoc(doc(getCollectionRef('students'), id), studentData);
+                    showToast('ছাত্রের তথ্য আপডেট করা হয়েছে।');
+                } else {
+                    await addDoc(getCollectionRef('students'), studentData);
+                    showToast('নতুন ছাত্র যোগ করা হয়েছে।');
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Error saving student:", error);
+                showToast('একটি ত্রুটি হয়েছে।', false);
+            }
+        });
+
+        document.getElementById('students-list').addEventListener('click', async (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            const id = target.dataset.id;
+            
+            if (target.matches('.edit-student-btn, .edit-student-btn *')) {
+                const student = allStudents.find(s => s.id === id);
+                document.getElementById('student-id').value = id;
+                document.getElementById('student-name').value = student.name;
+                document.getElementById('student-roll').value = student.roll;
+                document.getElementById('student-class').value = student.classId;
+                document.getElementById('student-modal-title').textContent = 'ছাত্রের তথ্য এডিট করুন';
+                openModal('student-modal');
+            } else if (target.matches('.delete-student-btn, .delete-student-btn *')) {
+                showConfirmModal('আপনি কি নিশ্চিতভাবে এই ছাত্রকে মুছে ফেলতে চান?', async () => {
+                     await deleteDoc(doc(getCollectionRef('students'), id));
+                     showToast('ছাত্রকে সফলভাবে মুছে ফেলা হয়েছে।');
+                });
+            }
+        });
+
+
+        // --- Attendance Logic ---
+        document.getElementById('load-students-btn').addEventListener('click', async () => {
+            const classId = document.getElementById('attendance-class').value;
+            const examId = document.getElementById('attendance-exam').value;
+
+            if (!classId || !examId) {
+                showToast('অনুগ্রহ করে পরীক্ষা এবং ক্লাস নির্বাচন করুন।', false);
+                return;
+            }
+            
+            const attendanceList = document.getElementById('attendance-list');
+            attendanceList.innerHTML = '<tr><td colspan="3" class="text-center p-4">লোড হচ্ছে...</td></tr>';
+            document.getElementById('attendance-sheet').classList.remove('hidden');
+
+            const studentsInClass = allStudents.filter(s => s.classId === classId);
+            
+            const today = new Date().toISOString().slice(0, 10);
+            const q = query(getCollectionRef('attendance'), where("examId", "==", examId), where("classId", "==", classId), where("date", "==", today));
+            const existingAttendanceSnapshot = await getDocs(q);
+            const existingRecord = !existingAttendanceSnapshot.empty ? existingAttendanceSnapshot.docs[0].data().records : {};
+
+            if (studentsInClass.length === 0) {
+                 attendanceList.innerHTML = '<tr><td colspan="3" class="text-center p-4">এই ক্লাসে কোনো ছাত্র পাওয়া যায়নি।</td></tr>';
+                 return;
+            }
+            
+            attendanceList.innerHTML = '';
+            studentsInClass.forEach(student => {
+                const status = existingRecord[student.id] || 'present';
+                const row = `<tr class="border-b" data-student-id="${student.id}"> <td class="py-3 px-4">${student.roll}</td> <td class="py-3 px-4">${student.name}</td> <td class="py-3 px-4 text-center"> <div class="inline-flex rounded-md shadow-sm" role="group"> <button type="button" class="attendance-status-btn px-4 py-2 text-sm font-medium ${status === 'present' ? 'bg-green-600 text-white' : 'bg-white text-gray-900'} border border-gray-200 rounded-l-lg hover:bg-gray-100" data-status="present">উপস্থিত</button> <button type="button" class="attendance-status-btn px-4 py-2 text-sm font-medium ${status === 'absent' ? 'bg-red-600 text-white' : 'bg-white text-gray-900'} border-t border-b border-r border-gray-200 rounded-r-lg hover:bg-gray-100" data-status="absent">অনুপস্থিত</button> </div> </td> </tr>`;
+                attendanceList.innerHTML += row;
+            });
+        });
+
+        document.getElementById('attendance-list').addEventListener('click', (e) => {
+            if (e.target.matches('.attendance-status-btn')) {
+                const button = e.target;
+                const parent = button.parentElement;
+                parent.querySelectorAll('.attendance-status-btn').forEach(btn => {
+                    btn.classList.remove('bg-green-600', 'bg-red-600', 'text-white');
+                    btn.classList.add('bg-white', 'text-gray-900');
+                });
+                const status = button.dataset.status;
+                button.classList.remove('bg-white', 'text-gray-900');
+                button.classList.add(status === 'present' ? 'bg-green-600' : 'bg-red-600', 'text-white');
+            }
+        });
+
+        function setAllAttendance(status) {
+             document.querySelectorAll('#attendance-list tr').forEach(row => {
+                const buttons = row.querySelectorAll('.attendance-status-btn');
+                buttons.forEach(btn => {
+                    btn.classList.remove('bg-green-600', 'bg-red-600', 'text-white');
+                    btn.classList.add('bg-white', 'text-gray-900');
+                });
+                const targetButton = row.querySelector(`.attendance-status-btn[data-status="${status}"]`);
+                if (targetButton) {
+                    targetButton.classList.remove('bg-white', 'text-gray-900');
+                    targetButton.classList.add(status === 'present' ? 'bg-green-600' : 'bg-red-600', 'text-white');
+                }
+            });
+        }
+        document.getElementById('mark-all-present').addEventListener('click', () => setAllAttendance('present'));
+        document.getElementById('mark-all-absent').addEventListener('click', () => setAllAttendance('absent'));
+
+        document.getElementById('save-attendance-btn').addEventListener('click', async () => {
+            const classId = document.getElementById('attendance-class').value;
+            const examId = document.getElementById('attendance-exam').value;
+            const today = new Date().toISOString().slice(0, 10);
+            
+            const attendanceData = { examId, classId, date: today, records: {} };
+            let hasRecords = false;
+
+            document.querySelectorAll('#attendance-list tr').forEach(row => {
+                hasRecords = true;
+                const studentId = row.dataset.studentId;
+                const selectedButton = row.querySelector('.attendance-status-btn.text-white');
+                attendanceData.records[studentId] = selectedButton ? selectedButton.dataset.status : 'absent';
+            });
+            
+            if(!hasRecords) {
+                showToast('কোনো ছাত্রের তথ্য নেই হাজিরা সেভ করার জন্য।', false);
+                return;
+            }
+
+            try {
+                const q = query(getCollectionRef('attendance'), where("examId", "==", examId), where("classId", "==", classId), where("date", "==", today));
+                const existingSnapshot = await getDocs(q);
+
+                if (!existingSnapshot.empty) {
+                    const docId = existingSnapshot.docs[0].id;
+                    await updateDoc(doc(getCollectionRef('attendance'), docId), attendanceData);
+                } else {
+                    await addDoc(getCollectionRef('attendance'), attendanceData);
+                }
+                showToast('হাজিরা সফলভাবে সেভ করা হয়েছে।');
+            } catch (error) {
+                console.error("Error saving attendance: ", error);
+                showToast('হাজিরা সেভ করতে সমস্যা হয়েছে।', false);
+            }
+        });
+        
+        // --- Reporting Logic ---
+        document.getElementById('generate-report-btn').addEventListener('click', async () => {
+            const classId = document.getElementById('report-class').value;
+            const examId = document.getElementById('report-exam').value;
+
+             if (!classId || !examId) {
+                showToast('অনুগ্রহ করে পরীক্ষা এবং ক্লাস নির্বাচন করুন।', false);
+                return;
+            }
+
+            const reportView = document.getElementById('report-view');
+            reportView.classList.remove('hidden');
+            const reportList = document.getElementById('report-list');
+            reportList.innerHTML = '<tr><td colspan="3" class="text-center p-4">রিপোর্ট তৈরি হচ্ছে...</td></tr>';
+            
+            const selectedClass = allClasses.find(c => c.id === classId);
+            const selectedExam = allExams.find(e => e.id === examId);
+            
+            document.getElementById('report-title').textContent = `${selectedExam.name} - ${selectedClass.name}`;
+            document.getElementById('print-report-meta').textContent = `ক্লাস: ${selectedClass.name} | পরীক্ষা: ${selectedExam.name}`;
+            
+            const q = query(getCollectionRef('attendance'), where("examId", "==", examId), where("classId", "==", classId));
+            const snapshot = await getDocs(q);
+
+            if(snapshot.empty) {
+                reportList.innerHTML = '<tr><td colspan="3" class="text-center p-4">এই পরীক্ষার কোনো হাজিরা পাওয়া যায়নি।</td></tr>';
+                document.getElementById('report-present').textContent = 0;
+                document.getElementById('report-absent').textContent = 0;
+                return;
+            }
+            
+            const latestRecord = snapshot.docs.sort((a,b) => b.data().date.localeCompare(a.data().date))[0].data();
+            const records = latestRecord.records;
+            
+            let presentCount = 0, absentCount = 0;
+            reportList.innerHTML = '';
+            
+            const studentsInClass = allStudents.filter(s => s.classId === classId);
+
+            studentsInClass.forEach(student => {
+                const status = records[student.id] || 'absent';
+                if (status === 'present') presentCount++; else absentCount++;
+
+                const row = `<tr class="border-b"> <td class="py-3 px-4">${student.roll}</td> <td class="py-3 px-4">${student.name}</td> <td class="py-3 px-4 text-center"> <span class="px-3 py-1 text-sm rounded-full ${status === 'present' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}"> ${status === 'present' ? 'উপস্থিত' : 'অনুপস্থিত'} </span> </td> </tr>`;
+                reportList.innerHTML += row;
+            });
+            
+            document.getElementById('report-present').textContent = presentCount;
+            document.getElementById('report-absent').textContent = absentCount;
+        });
+
+        // Print functionality
+        document.getElementById('print-report-btn').addEventListener('click', () => {
+            document.getElementById('print-header-placeholder').classList.remove('hidden');
+            window.print();
+            document.getElementById('print-header-placeholder').classList.add('hidden');
+        });
+
+        // --- Initial Load ---
+        if(auth) {
+            showPage('dashboard');
+            feather.replace();
+        }
+    </script>
+</body>
+</html>

@@ -159,7 +159,7 @@
             <div id="auth-error" class="hidden fixed inset-0 bg-red-100 text-red-800 p-8 text-center flex flex-col justify-center items-center z-50">
                 <i data-feather="alert-triangle" class="h-16 w-16 mb-4"></i>
                 <h2 class="text-2xl font-bold mb-2">সিস্টেম চালু করা যায়নি</h2>
-                <p>অঅথেন্টিকেশন এ সমস্যা হয়েছে। অনুগ্রহ করে পৃষ্ঠাটি রিলোড করুন অথবা నిర్ವಾಹకుడిని సంప్రదించండి।</p>
+                <p>একটি অপ্রত্যাশিত সমস্যা হয়েছে। অনুগ্রহ করে পৃষ্ঠাটি রিলোড করুন অথবা অ্যাডমিনের সাথে যোগাযোগ করুন।</p>
             </div>
 
 
@@ -454,8 +454,18 @@
             auth = getAuth(app);
         } catch (error) {
             console.error("Firebase initialization failed:", error);
+            const authErrorDiv = document.getElementById('auth-error');
+            const authErrorP = authErrorDiv.querySelector('p');
+            
+            if (error.message.includes("config is missing")) {
+                authErrorP.textContent = 'সিস্টেম কনফিগারেশন লোড করা যায়নি। অ্যাপটি কাজ করার জন্য এটি অপরিহার্য। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন।';
+            } else {
+                authErrorP.textContent = 'সিস্টেম চালু করতে একটি সমস্যা হয়েছে। অনুগ্রহ করে পৃষ্ঠাটি রিলোড করুন।';
+            }
+            
             document.getElementById('loader').classList.add('hidden');
-            document.getElementById('auth-error').classList.remove('hidden');
+            authErrorDiv.classList.remove('hidden');
+            feather.replace();
         }
 
         let userId = null;
@@ -498,7 +508,9 @@
                     // Catch any other potential errors during the auth process
                     console.error("General authentication error:", error);
                     loader.classList.add('hidden');
-                    document.getElementById('auth-error').classList.remove('hidden');
+                    const authErrorDiv = document.getElementById('auth-error');
+                    authErrorDiv.classList.remove('hidden');
+                    feather.replace();
                 }
             }
         });
